@@ -15,12 +15,17 @@ const camera = new THREE.PerspectiveCamera(
   75,
   sizes.width / sizes.height,
   0.1,
-  1000
+  100
 );
-camera.position.set(0, 0, 10);
+camera.position.set(0, 0, 50);
+camera.aspect = sizes.width / sizes.height;
+
+// camera.fov = Math.atan(sizes.height / 2 / 50) * (180 / Math.PI) * 2;
+camera.fov = Math.atan(sizes.height / 2 / 50) * (180 / Math.PI) * 2;
 
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
 /**
  * Create Object
@@ -49,6 +54,7 @@ function createImages(images) {
 
   const imagesMeshes = images.map((img) => {
     const { width, height, top, left } = img.getBoundingClientRect();
+    console.log(width, height);
     const material = new THREE.ShaderMaterial({
       uniforms: {},
       vertexShader: `
@@ -61,7 +67,7 @@ function createImages(images) {
       }`,
     });
 
-    const geomatry = new THREE.PlaneGeometry(0.5, 0.5, 16, 16);
+    const geomatry = new THREE.PlaneGeometry(width, 1, 16, 16);
 
     const mesh = new THREE.Mesh(geomatry, material);
 
