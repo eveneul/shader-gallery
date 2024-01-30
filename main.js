@@ -26,6 +26,25 @@ renderer.setSize(sizes.width, sizes.height);
  * Create Object
  */
 
+async function loadImages() {
+  // 로드한 이미지 데이터를 넘길 수 있게 작업
+  const images = [...document.querySelectorAll("img")];
+  // 배열처럼, 배열에 있는 이미지 element를 사용할 수 있음
+
+  const fetchedImges = images.map((img) => {
+    return new Promise((resolve, reject) => {
+      img.onload = resolve(img);
+      img.onerror = reject;
+    });
+  });
+
+  const loadedImg = await Promise.all(fetchedImges);
+  // Promise.all => 안에 모든 Promise가 resolve가 되었는지 확인하고 넘겨 줌
+  // 그리고 그 밑에 있는 코드가 실행되도록
+  console.log(loadedImg);
+  return loadedImg;
+}
+
 function createImages() {
   const material = new THREE.ShaderMaterial({
     uniforms: {},
@@ -48,15 +67,20 @@ function createImages() {
 
 const clock = new THREE.Clock();
 
-const render = () => {
+const render = async () => {
+  const loadedImages = await loadImages();
   const object = createImages();
   scene.add(object);
 };
 
 const tick = () => {
   requestAnimationFrame(tick);
-  render();
   renderer.render(scene, camera);
 };
 
-tick();
+const init = async () => {
+  await render();
+  tick();
+};
+
+init().then();
