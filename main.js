@@ -41,36 +41,43 @@ async function loadImages() {
   const loadedImg = await Promise.all(fetchedImges);
   // Promise.all => 안에 모든 Promise가 resolve가 되었는지 확인하고 넘겨 줌
   // 그리고 그 밑에 있는 코드가 실행되도록
-  console.log(loadedImg);
   return loadedImg;
 }
 
-function createImages() {
-  const material = new THREE.ShaderMaterial({
-    uniforms: {},
-    vertexShader: `
-    void main () {
-      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 0.1);
-    }`,
-    fragmentShader: `
-    void main () {
-      gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    }`,
+function createImages(images) {
+  console.log(images);
+
+  const imagesMeshes = images.map((img) => {
+    const { width, height, top, left } = img.getBoundingClientRect();
+    const material = new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `
+      void main () {
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 0.1);
+      }`,
+      fragmentShader: `
+      void main () {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+      }`,
+    });
+
+    const geomatry = new THREE.PlaneGeometry(0.5, 0.5, 16, 16);
+
+    const mesh = new THREE.Mesh(geomatry, material);
+
+    return mesh;
   });
 
-  const geomatry = new THREE.PlaneGeometry(0.5, 0.5, 16, 16);
-
-  const mesh = new THREE.Mesh(geomatry, material);
-
-  return mesh;
+  return imagesMeshes;
 }
 
 const clock = new THREE.Clock();
 
 const render = async () => {
   const loadedImages = await loadImages();
-  const object = createImages();
-  scene.add(object);
+  const object = createImages([...loadedImages]);
+  // console.log(object);
+  scene.add(...object);
 };
 
 const tick = () => {
