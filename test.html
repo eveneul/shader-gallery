@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+
+</head>
+
+<body>
+  <div class="container">
+    <input type="text" id="input1">
+    <input type="text" id="input2">
+  </div>
+  <style>
+    .container {
+      position: relative;
+    }
+
+    input {
+      position: absolute;
+    }
+
+    #input2 {
+      border: 2px solid red;
+      background-color: red;
+      z-index: 2;
+      pointer-events: none;
+    }
+  </style>
+
+  <script>
+    const input1 = document.getElementById("input1")
+    const input2 = document.getElementById("input2")
+    input1.addEventListener("click", () => console.log("input 1 click"))
+    input2.addEventListener("click", (event) => {
+      console.log("click")
+    })
+  </script>
+</body>
+
+</html>

@@ -1,99 +1,126 @@
 import * as THREE from "three";
 import gui from "lil-gui";
 import gsap from "gsap";
+const renderer = new THREE.WebGLRenderer({
+  alpha: true,
+});
 
-const sizes = { width: window.innerWidth, height: window.innerHeight };
-
-const scene = new THREE.Scene();
 const container = document.querySelector("#app");
-const canvas = document.createElement("canvas");
-canvas.width = sizes.width;
-canvas.height = sizes.height;
-container.appendChild(canvas);
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  sizes.width / sizes.height,
-  0.1,
-  100
-);
+container.appendChild(renderer.domElement);
+
+const canvasSize = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
+
+const textureLoader = new THREE.TextureLoader();
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, canvasSize.width / canvasSize.height, 0.1, 100);
 camera.position.set(0, 0, 50);
-camera.aspect = sizes.width / sizes.height;
+camera.fov = Math.atan(canvasSize.height / 2 / 50) * (180 / Math.PI) * 2;
 
-// camera.fov = Math.atan(sizes.height / 2 / 50) * (180 / Math.PI) * 2;
-camera.fov = Math.atan(sizes.height / 2 / 50) * (180 / Math.PI) * 2;
+const imageRepository = [];
 
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const loadImages = async () => {
+  const images = [...document.querySelectorAll(" img")];
 
-/**
- * Create Object
- */
+  const fetchImages = images.map(
+    (image) =>
+      new Promise((resolve, reject) => {
+        image.onload = resolve(image);
+        image.onerror = reject;
+      })
+  );
 
-async function loadImages() {
-  // 로드한 이미지 데이터를 넘길 수 있게 작업
-  const images = [...document.querySelectorAll("img")];
-  // 배열처럼, 배열에 있는 이미지 element를 사용할 수 있음
+  const loadedImages = await Promise.all(fetchImages);
 
-  const fetchedImges = images.map((img) => {
-    return new Promise((resolve, reject) => {
-      img.onload = resolve(img);
-      img.onerror = reject;
-    });
-  });
+  return loadedImages;
+};
 
-  const loadedImg = await Promise.all(fetchedImges);
-  // Promise.all => 안에 모든 Promise가 resolve가 되었는지 확인하고 넘겨 줌
-  // 그리고 그 밑에 있는 코드가 실행되도록
-  return loadedImg;
-}
-
-function createImages(images) {
-  console.log(images);
-
-  const imagesMeshes = images.map((img) => {
-    const { width, height, top, left } = img.getBoundingClientRect();
-    console.log(width, height);
+const createImages = (images) => {
+  const imageMeshes = images.map((image) => {
+    const { width, height } = image.getBoundingClientRect();
     const material = new THREE.ShaderMaterial({
       uniforms: {},
       vertexShader: `
-      void main () {
-        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 0.1);
-      }`,
+
+    varying vec2 vUv;
+
+      void main() {
+        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+
+        vUv = uv;
+      }
+    `,
       fragmentShader: `
-      void main () {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    varying vec2 vUv;
+
+      void main() {
+        gl_FragColor = vec4(vUv, 1.0, 1.0);
       }`,
+      side: THREE.DoubleSide,
     });
-
-    const geomatry = new THREE.PlaneGeometry(width, 1, 16, 16);
-
-    const mesh = new THREE.Mesh(geomatry, material);
+    const geometry = new THREE.PlaneGeometry(width, height, 16, 16);
+    const mesh = new THREE.Mesh(geometry, material);
 
     return mesh;
   });
 
-  return imagesMeshes;
-}
+  return imageMeshes;
+};
 
-const clock = new THREE.Clock();
-
-const render = async () => {
+const create = async () => {
   const loadedImages = await loadImages();
-  const object = createImages([...loadedImages]);
-  // console.log(object);
-  scene.add(...object);
+  const images = createImages([...loadedImages]);
+  console.log(images);
+  scene.add(...images);
 };
 
-const tick = () => {
-  requestAnimationFrame(tick);
+const resize = () => {
+  // canvasSize.width = window.innerWidth;
+  // canvasSize.height = window.innerHeight;
+
+  // camera.aspect = canvasSize.width / canvasSize.height;
+  // camera.fov = Math.atan(canvasSize.height / 2 / 50) * (180 / Math.PI) * 2;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvasSize.width, canvasSize.height);
+
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+};
+
+const retransform = () => {
+  imageRepository.forEach(({ img, mesh }) => {
+    const { width, height, top, left } = img.getBoundingClientRect();
+    const { width: originWidth } = mesh.geometry.parameters;
+
+    const scale = width / originWidth;
+    mesh.scale.x = scale;
+    mesh.scale.y = scale;
+
+    mesh.position.y = canvasSize.height / 2 - height / 2 - top;
+    mesh.position.x = -canvasSize.width / 2 + width / 2 + left;
+  });
+};
+
+const addEvent = () => {
+  window.addEventListener("resize", resize);
+};
+
+const draw = () => {
   renderer.render(scene, camera);
+  retransform();
+
+  requestAnimationFrame(() => {
+    draw();
+  });
 };
 
-const init = async () => {
-  await render();
-  tick();
+const initialize = async () => {
+  await create();
+  // addEvent();
+  resize();
+  draw();
 };
 
-init().then();
+initialize().then();
