@@ -1,126 +1,67 @@
 import * as THREE from "three";
-import gui from "lil-gui";
-import gsap from "gsap";
-const renderer = new THREE.WebGLRenderer({
-  alpha: true,
-});
 
-const container = document.querySelector("#app");
-
+const container = document.getElementById("app");
+const sizes = { width: window.innerWidth, height: window.innerHeight };
+const scene = new THREE.Scene();
+const renderer = new THREE.WebGLRenderer({ alpha: true });
+renderer.setSize(sizes.width, sizes.height);
 container.appendChild(renderer.domElement);
 
-const canvasSize = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
+camera.position.set(0, 0, 50);
+camera.fov = Math.atan(sizes.height / 2 / 50) * (180 / Math.PI) * 2;
+
+/**
+ * Object
+ */
 
 const textureLoader = new THREE.TextureLoader();
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, canvasSize.width / canvasSize.height, 0.1, 100);
-camera.position.set(0, 0, 50);
-camera.fov = Math.atan(canvasSize.height / 2 / 50) * (180 / Math.PI) * 2;
 
-const imageRepository = [];
+const img = document.querySelector("img");
+const { width, height, top, left } = img.getBoundingClientRect();
 
-const loadImages = async () => {
-  const images = [...document.querySelectorAll(" img")];
+const geomatry = new THREE.PlaneGeometry(width, height, 16, 16);
+const material = new THREE.ShaderMaterial({
+  uniforms: {
+    uTexture: { value: textureLoader.load(img.src) },
+    uHover: { value: 0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
 
-  const fetchImages = images.map(
-    (image) =>
-      new Promise((resolve, reject) => {
-        image.onload = resolve(image);
-        image.onerror = reject;
-      })
-  );
+      vUv = uv;
 
-  const loadedImages = await Promise.all(fetchImages);
-
-  return loadedImages;
-};
-
-const createImages = (images) => {
-  const imageMeshes = images.map((image) => {
-    const { width, height } = image.getBoundingClientRect();
-    const material = new THREE.ShaderMaterial({
-      uniforms: {},
-      vertexShader: `
-
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
     varying vec2 vUv;
 
-      void main() {
-        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+    uniform sampler2D uTexture;
 
-        vUv = uv;
-      }
-    `,
-      fragmentShader: `
-    varying vec2 vUv;
+  
+    void main () {
 
-      void main() {
-        gl_FragColor = vec4(vUv, 1.0, 1.0);
-      }`,
-      side: THREE.DoubleSide,
-    });
-    const geometry = new THREE.PlaneGeometry(width, height, 16, 16);
-    const mesh = new THREE.Mesh(geometry, material);
+      float distance = length(vUv - 0.5);
+      vec2 wave = vec2(sin(distance), cos(distance));
+      vec2 newuv = vUv + wave * 0.5;
 
-    return mesh;
-  });
+      vec4 tex = texture2D(uTexture, newuv);
+      gl_FragColor = tex;
+    }
+  `,
+});
 
-  return imageMeshes;
-};
+const mesh = new THREE.Mesh(geomatry, material);
+mesh.position.x = -sizes.width / 2 + width / 2 + left;
+mesh.position.y = sizes.height / 2 - height / 2 - top;
+scene.add(mesh);
 
-const create = async () => {
-  const loadedImages = await loadImages();
-  const images = createImages([...loadedImages]);
-  console.log(images);
-  scene.add(...images);
-};
-
-const resize = () => {
-  // canvasSize.width = window.innerWidth;
-  // canvasSize.height = window.innerHeight;
-
-  // camera.aspect = canvasSize.width / canvasSize.height;
-  // camera.fov = Math.atan(canvasSize.height / 2 / 50) * (180 / Math.PI) * 2;
-  camera.updateProjectionMatrix();
-  renderer.setSize(canvasSize.width, canvasSize.height);
-
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-};
-
-const retransform = () => {
-  imageRepository.forEach(({ img, mesh }) => {
-    const { width, height, top, left } = img.getBoundingClientRect();
-    const { width: originWidth } = mesh.geometry.parameters;
-
-    const scale = width / originWidth;
-    mesh.scale.x = scale;
-    mesh.scale.y = scale;
-
-    mesh.position.y = canvasSize.height / 2 - height / 2 - top;
-    mesh.position.x = -canvasSize.width / 2 + width / 2 + left;
-  });
-};
-
-const addEvent = () => {
-  window.addEventListener("resize", resize);
-};
-
-const draw = () => {
+function tick() {
   renderer.render(scene, camera);
-  retransform();
+  camera.updateProjectionMatrix();
+  requestAnimationFrame(tick);
+}
 
-  requestAnimationFrame(() => {
-    draw();
-  });
-};
-
-const initialize = async () => {
-  await create();
-  // addEvent();
-  resize();
-  draw();
-};
-
-initialize().then();
+tick();

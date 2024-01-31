@@ -21,6 +21,13 @@
       height: 100%;
     }
 
+    main {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
     .sc-content {
       display: flex;
       justify-content: space-between;
@@ -35,6 +42,8 @@
     .img-box img {
       width: 100%;
       height: 100%;
+      visibility: hidden;
+      border: 2px solid red;
     }
 
     .sc-content:nth-of-type(2) {
@@ -56,7 +65,7 @@
         </p>
       </div>
     </section>
-    <section class="sc-content">
+    <!-- <section class="sc-content">
       <div class="img-box">
         <img src="https://image.bugsm.co.kr/essential/images/250/511/51130.jpg?_up=20220120-104432" alt="" />
       </div>
@@ -77,10 +86,10 @@
           Reiciendis, corporis!
         </p>
       </div>
-    </section>
+    </section> -->
   </main>
   <div id="app"></div>
-  <script type="module" src="/test.js"></script>
+  <script type="module" src="/main.js"></script>
 </body>
 
 </html>

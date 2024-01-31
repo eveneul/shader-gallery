@@ -72,7 +72,6 @@ function render() {
 async function init() {
   await create();
   camera.updateProjectionMatrix();
-  renderer.setSize(sizes.width, sizes.height);
 
   render();
 }
